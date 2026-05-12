@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Electroestimulación Terapéutica - Globus Activa 700</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom styles for elements that need specific constraints */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        
+        /* CSS-based Electrode Shapes */
+        .pad-positive {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 3rem;
+            height: 3rem;
+            background-color: #fee2e2; /* red-100 */
+            border: 2px solid #ef4444; /* red-500 */
+            border-radius: 0.375rem;
+            font-weight: bold;
+            color: #b91c1c; /* red-700 */
+            font-size: 0.75rem;
+        }
+        .pad-negative {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 3rem;
+            height: 3rem;
+            background-color: #f3f4f6; /* gray-100 */
+            border: 2px solid #6b7280; /* gray-500 */
+            border-radius: 0.375rem;
+            font-weight: bold;
+            color: #374151; /* gray-700 */
+            font-size: 0.75rem;
+        }
+        .pain-zone {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            background-color: #fef3c7; /* amber-100 */
+            border: 1px dashed #d97706; /* amber-600 */
+            border-radius: 9999px;
+            color: #92400e;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Custom Scrollbar for the sidebar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-slate-800 font-sans antialiased selection:bg-teal-200 selection:text-teal-900">
+
+    <!-- Chosen Palette: Warm Neutrals (Stone-50) for background to create a calming, clinical feel. Teal (Teal-600) for primary actions and highlights, representing health, balance, and electrical energy. Slate (Slate-800/600) for high-contrast, readable text. Amber (Amber-100) for pain zone highlights. -->
+    
+    <!-- Application Structure Plan: 
+         A Master-Detail dashboard architecture. 
+         - WHY: The user needs to find specific treatments quickly without scrolling through a massive manual. 
+         - Left Sidebar (Master): Acts as an index of ailments/protocols.
+         - Right Main Area (Detail): Displays the specific protocol, parameters, interactive placement diagram, and a dynamic chart.
+         - Flow: User selects their ailment -> The UI instantly updates to show EXACTLY how to configure their Globus 700 device, where to put the pads, and what they should feel. 
+         - Intro Section: A quick educational overview on the types of TENS to establish baseline knowledge before applying treatments. -->
+         
+    <!-- Visualization & Content Choices: 
+         - Goal: Inform on Parameters -> Viz: Interactive Text Blocks & Dynamic Configuration Cards -> Justification: Precise numbers (Hz, ms, mA) are best read clearly.
+         - Goal: Instruct on Pad Placement -> Viz: CSS-based Diagram Elements (NO SVG) -> Justification: Provides a clear abstract representation of channels and polarity without needing complex graphics.
+         - Goal: Compare TENS types -> Viz: Chart.js Bar/Radar Chart -> Justification: Helps users visually understand the difference between High-Frequency (Antálgico) and Low-Frequency (Endorfínico) in terms of session duration and Hertz.
+         - Library: Chart.js for data viz. Tailwind for layout and CSS shapes for diagrams. -->
+         
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All visual elements are HTML/CSS (Tailwind) or Canvas (Chart.js). -->
+
+    <!-- Top Navigation / Header -->
+    <header class="bg-white border-b border-stone-200 sticky top-0 z-10 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-teal-600 rounded flex items-center justify-center text-white font-bold text-xl">
+                        &#9889; <!-- Unicode Lightning Bolt -->
+                    </div>
+                    <h1 class="text-xl font-bold text-slate-800 tracking-tight">Globus Activa 700 <span class="text-teal-600">Protocolos Terapéuticos</span></h1>
+                </div>
+                <div class="hidden sm:block text-sm text-slate-500 font-medium">
+                    Guía de Referencia Rápida para Mitigación de Dolor
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Application Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row gap-8">
+
+        <!-- Sidebar: Navigation / Ailment List -->
+        <aside class="w-full md:w-1/3 lg:w-1/4 flex-shrink-0">
+            <div class="bg-white rounded-xl shadow-sm border border-stone-100 overflow-hidden sticky top-24">
+                <div class="p-4 bg-slate-50 border-b border-stone-100">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Selecciona tu Dolencia</h2>
+                </div>
+                <nav id="ailment-list" class="flex flex-col max-h-[60vh] overflow-y-auto custom-scrollbar p-2 space-y-1">
+                    <!-- Populated by JS -->
+                </nav>
+            </div>
+            
+            <div class="mt-6 bg-teal-50 rounded-xl p-5 border border-teal-100">
+                <h3 class="text-teal-800 font-bold mb-2 flex items-center">
+                    <span class="mr-2">&#9888;</span> Importante
+                </h3>
+                <p class="text-xs text-teal-700 leading-relaxed">
+                    Esta guía es un resumen de las mejores prácticas clínicas para equipos TENS/EMS. 
+                    <strong class="font-bold">Reglas de oro:</strong> Nunca cruzar la zona del corazón, no aplicar en la parte anterior del cuello (seno carotídeo), ni sobre heridas abiertas o embarazo.
+                </p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area: Detail View -->
+        <main class="w-full md:w-2/3 lg:w-3/4">
+            
+            <!-- Introduction (Visible on load, hidden when ailment selected) -->
+            <div id="intro-view" class="bg-white rounded-2xl shadow-sm border border-stone-100 p-8 text-center animate-fade-in">
+                <div class="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl text-teal-600">
+                    &#128214; <!-- Unicode Book -->
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-4">Bienvenido a tu Guía Interactiva</h2>
+                <p class="text-slate-600 max-w-2xl mx-auto mb-8 leading-relaxed">
+                    El <strong>Globus Activa 700</strong> es un equipo potente de 4 canales. Para sacar el máximo partido en el alivio del dolor, es crucial entender cómo colocar los electrodos y qué programa elegir. Selecciona una dolencia en el menú de la izquierda para ver el protocolo detallado paso a paso.
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                    <div class="bg-stone-50 p-6 rounded-xl border border-stone-200">
+                        <h4 class="font-bold text-slate-800 mb-2 flex items-center">
+                            <span class="w-3 h-3 bg-blue-400 rounded-full mr-2"></span> TENS Convencional (Antálgico)
+                        </h4>
+                        <p class="text-sm text-slate-600 mb-2">Bloquea la señal de dolor en la médula (Teoría de la Puerta).</p>
+                        <ul class="text-xs text-slate-500 list-disc list-inside">
+                            <li>Alta frecuencia (80-100 Hz)</li>
+                            <li>Efecto rápido, pero dura menos tras apagarlo.</li>
+                            <li><strong>Sensación:</strong> Hormigueo agradable. <span class="text-red-500 font-semibold">CERO contracción.</span></li>
+                        </ul>
+                    </div>
+                    <div class="bg-stone-50 p-6 rounded-xl border border-stone-200">
+                        <h4 class="font-bold text-slate-800 mb-2 flex items-center">
+                            <span class="w-3 h-3 bg-green-400 rounded-full mr-2"></span> TENS Endorfínico
+                        </h4>
+                        <p class="text-sm text-slate-600 mb-2">Estimula la liberación de endorfinas (analgésicos naturales).</p>
+                        <ul class="text-xs text-slate-500 list-disc list-inside">
+                            <li>Baja frecuencia (1-5 Hz)</li>
+                            <li>Tarda más en hacer efecto, pero dura horas.</li>
+                            <li><strong>Sensación:</strong> Latido muscular visible. <span class="text-red-500 font-semibold">CERO dolor.</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Protocol Detail View (Hidden on load) -->
+            <div id="protocol-view" class="hidden animate-fade-in space-y-6">
+                
+                <!-- Header Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6 sm:p-8">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span id="prot-category" class="inline-block px-3 py-1 rounded-full bg-teal-100 text-teal-800 text-xs font-bold tracking-wide uppercase mb-3">TENS</span>
+                            <h2 id="prot-title" class="text-3xl font-bold text-slate-800">Nombre Dolencia</h2>
+                        </div>
+                    </div>
+                    <p id="prot-desc" class="text-lg text-slate-600 leading-relaxed">
+                        Descripción detallada de la dolencia y cómo la electroestimulación ayuda a mitigarla.
+                    </p>
+                </div>
+
+                <!-- Parameters Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Config Box -->
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-100 p-5 flex flex-col items-center text-center">
+                        <div class="text-2xl mb-2">&#9881;</div>
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Menú Globus</h4>
+                        <p id="prot-menu" class="font-semibold text-slate-800">Dolor > Tens Antálgico</p>
+                    </div>
+                    <!-- Time Box -->
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-100 p-5 flex flex-col items-center text-center">
+                        <div class="text-2xl mb-2">&#9201;</div>
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Duración</h4>
+                        <p id="prot-duration" class="font-semibold text-slate-800">30 Minutos</p>
+                    </div>
+                    <!-- Freq Box -->
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-100 p-5 flex flex-col items-center text-center">
+                        <div class="text-2xl mb-2">&#128225;</div>
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Frecuencia Base</h4>
+                        <p id="prot-freq" class="font-semibold text-slate-800">80 - 100 Hz</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    <!-- Execution & Intensity -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6 sm:p-8">
+                        <h3 class="text-xl font-bold text-slate-800 mb-5 border-b border-stone-100 pb-3">Ejecución e Intensidad</h3>
+                        
+                        <div class="mb-6">
+                            <h4 class="font-semibold text-slate-700 mb-2">Sensación Buscada (Intensidad en mA):</h4>
+                            <p id="prot-intensity" class="text-sm text-slate-600 bg-stone-50 p-4 rounded-lg border border-stone-200">
+                                Sube los mA poco a poco hasta notar...
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-2">Frecuencia de Uso:</h4>
+                            <div class="flex items-center text-sm text-slate-600">
+                                <span class="mr-2 text-teal-600 text-lg">&#10004;</span>
+                                <span id="prot-usage">1 a 2 veces al día.</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 pt-4 border-t border-stone-100">
+                            <h4 class="font-semibold text-slate-700 mb-2">Truco Pro:</h4>
+                            <p id="prot-trick" class="text-sm italic text-slate-500">
+                                Aplicar calor antes...
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Electrode Placement Diagram -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6 sm:p-8">
+                        <h3 class="text-xl font-bold text-slate-800 mb-5 border-b border-stone-100 pb-3">Colocación de Electrodos</h3>
+                        
+                        <!-- Abstract CSS Diagram -->
+                        <div class="bg-stone-50 rounded-xl border border-stone-200 p-6 mb-6 flex flex-col items-center justify-center min-h-[200px]">
+                            <div id="diagram-container" class="flex flex-col space-y-4 w-full max-w-sm">
+                                <!-- Dynamic Diagram inserted here via JS -->
+                            </div>
+                        </div>
+
+                        <p id="prot-placement-text" class="text-sm text-slate-600 leading-relaxed">
+                            Explicación de dónde colocar...
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Visual Data Section: Parameter Comparison Chart -->
+                <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6 sm:p-8">
+                    <div class="mb-4">
+                        <h3 class="text-xl font-bold text-slate-800">Análisis de Tratamiento (Frecuencia vs Tiempo)</h3>
+                        <p class="text-sm text-slate-500">Comparativa del protocolo actual frente a otros métodos de electroanalgesia.</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="protocolChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        /**
+         * DATOS DE PROTOCOLOS (Information Architecture)
+         * Curated expert knowledge specifically adapted for general TENS/MENS 
+         * standard procedures applicable to Globus Activa 700.
+         */
+        const protocols = [
+            {
+                id: 'lumbalgia',
+                category: 'TENS / ENDORFÍNICO',
+                title: 'Lumbalgia (Dolor Lumbar)',
+                description: 'Dolor en la zona baja de la espalda. Puede ser agudo (tirón) o crónico. El objetivo es bloquear la señal de dolor y relajar la musculatura paravertebral.',
+                menu: 'Tens > Tens Antálgico / Endorfínico',
+                duration: '30 - 40 Minutos',
+                freqBase: '80 Hz (Antálgico) o 2-5 Hz (Endorfínico)',
+                intensity: '<strong>Modo Antálgico:</strong> Sube la intensidad hasta notar un hormigueo fuerte y agradable. NO debe doler ni provocar contracción muscular.<br><br><strong>Modo Endorfínico (si hay mucha tensión):</strong> Sube hasta notar pequeñas sacudidas musculares rítmicas (latidos), indoloras.',
+                usage: '1 a 2 veces al día durante los picos de dolor.',
+                trick: 'Usa una esterilla de calor en la zona 10 minutos antes de colocar los electrodos. Aumenta la irrigación y mejora la efectividad de las corrientes.',
+                placementText: 'Usa 2 Canales (4 electrodos). Colócalos de forma cruzada (Ch1 y Ch2) o en paralelo (Ch1 a la izquierda de la columna, Ch2 a la derecha), abrazando el punto de máximo dolor en la zona lumbar.',
+                diagramType: 'square-surround',
+                chartData: [80, 30] // [Hz, Time]
+            },
+            {
+                id: 'cervicalgia',
+                category: 'TENS',
+                title: 'Cervicalgia (Tensión en Cuello/Hombros)',
+                description: 'Tensión severa en trapecios y base del cuello, a menudo acompañada de dolores de cabeza tensionales por malas posturas o estrés.',
+                menu: 'Tens > Tens Cervical / Dolor Trapecios',
+                duration: '25 - 30 Minutos',
+                freqBase: '90 - 100 Hz',
+                intensity: 'Sube la intensidad con extrema precaución. La zona cervical es muy sensible. Debes notar un cosquilleo suave que cubre toda la zona dolorida. <strong>Prohibida la contracción muscular aquí</strong> para evitar mareos o aumento de tensión.',
+                usage: '1 vez al día, preferiblemente al final del día.',
+                trick: 'Realiza estiramientos suaves del cuello (inclinaciones laterales) MIENTRAS recibes el tratamiento de TENS para soltar la fascia.',
+                placementText: 'Usa 1 o 2 Canales. Un electrodo sobre la base del cuello y el otro hacia el final del trapecio (hacia el hombro). NUNCA colocar en la parte frontal del cuello ni cerca de la carótida.',
+                diagramType: 'parallel-vertical',
+                chartData: [90, 25]
+            },
+            {
+                id: 'ciatica',
+                category: 'TENS',
+                title: 'Ciática (Dolor Irradiado)',
+                description: 'Dolor agudo que baja desde la zona lumbar, por el glúteo y hacia la pierna, causado por la compresión o irritación del nervio ciático.',
+                menu: 'Tens > Tens Ciática / Dolor Radicular',
+                duration: '40 - 45 Minutos',
+                freqBase: '100 - 120 Hz',
+                intensity: 'Hormigueo muy marcado y constante. El objetivo es "inundar" la vía nerviosa con esta sensación agradable para que el cerebro deje de procesar el dolor agudo del ciático.',
+                usage: 'Hasta 3 veces al día en fase aguda.',
+                trick: 'La electroestimulación no cura la hernia o protrusión que causa la ciática, solo enmascara el dolor. Úsala para poder realizar los ejercicios de fisioterapia (McKenzie, estiramientos) sin dolor.',
+                placementText: 'Colocación "A lo largo del nervio". Canal 1: Un pad en zona lumbar/glúteo (origen) y el otro más abajo en la parte posterior del muslo. Canal 2 (opcional): Continuando el recorrido por el gemelo.',
+                diagramType: 'linear-path',
+                chartData: [110, 45]
+            },
+            {
+                id: 'epicondilitis',
+                category: 'TENS / MICROCORRIENTES',
+                title: 'Epicondilitis (Codo de Tenista)',
+                description: 'Inflamación de los tendones que unen los músculos del antebrazo con el exterior del codo. Las Microcorrientes (MENS) son ideales aquí por su efecto regenerador a nivel celular.',
+                menu: 'Microcorrientes > Epicondilitis (Si tu equipo tiene) o TENS Convencional',
+                duration: '30 Minutos (TENS) / 40 Minutos (MENS)',
+                freqBase: 'TENS: 80Hz | MENS: No aplica Hz tradicionales',
+                intensity: '<strong>Si usas TENS:</strong> Hormigueo suave.<br><strong>Si usas Microcorrientes (MENS):</strong> NO SENTIRÁS NADA o apenas un levísimo cosquilleo. Es normal, las MENS trabajan a un nivel sub-sensorial para sanar el tejido, no lo subas buscando dolor.',
+                usage: '1 vez al día durante 2-3 semanas (requiere constancia).',
+                trick: 'No aplicar hielo inmediatamente después de las Microcorrientes, ya que cortas el flujo sanguíneo que la corriente acaba de estimular para la curación.',
+                placementText: '1 Canal. Coloca un electrodo justo por encima del epicóndilo (el hueso externo del codo que duele) y el otro unos centímetros más abajo, en el vientre muscular del antebrazo.',
+                diagramType: 'bracket',
+                chartData: [80, 30] // Representing TENS side
+            },
+            {
+                id: 'artrosis-rodilla',
+                category: 'TENS + EMS',
+                title: 'Dolor por Artrosis de Rodilla',
+                description: 'Desgaste del cartílago. El protocolo tiene dos fases: 1. Quitar dolor (TENS). 2. Fortalecer el Cuádriceps (EMS) para que estabilice la articulación y quite carga al hueso.',
+                menu: 'Fase 1: Tens Antálgico. Fase 2: Deporte > Fuerza Resistencia Cuádriceps',
+                duration: 'TENS: 30 Min | EMS: 20 Min',
+                freqBase: 'TENS: 80 Hz | EMS: 50-60 Hz',
+                intensity: '<strong>Para el TENS:</strong> Hormigueo intenso alrededor de la rodilla.<br><strong>Para el EMS (Fortalecimiento):</strong> Contracción vigorosa y fuerte. Debe costar extender la pierna. Subir al máximo tolerable.',
+                usage: 'TENS a diario. EMS para fortalecer: 2-3 veces por semana dejando descanso.',
+                trick: 'Durante el programa de fortalecimiento (EMS), cuando la máquina lance el impulso eléctrico, haz una extensión de rodilla voluntaria acompañando la corriente.',
+                placementText: 'Para dolor (TENS): 2 Canales cruzando la rodilla (ej: Ch1 arriba-izq y abajo-der, Ch2 arriba-der y abajo-izq). Para Fuerza (EMS): Electrodos en los vientres musculares del cuádriceps (vasto interno y externo).',
+                diagramType: 'cross-joint',
+                chartData: [60, 50] // Average representing mixed protocol
+            }
+        ];
+
+        // Global State
+        let currentChart = null;
+
+        // --- Init & Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMenuList();
+        });
+
+        // --- Render Functions ---
+        function renderMenuList() {
+            const nav = document.getElementById('ailment-list');
+            protocols.forEach(prot => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left px-4 py-3 rounded-lg text-slate-600 font-medium hover:bg-teal-50 hover:text-teal-700 transition-colors border-l-4 border-transparent hover:border-teal-500 focus:outline-none focus:bg-teal-50 focus:border-teal-500 focus:text-teal-800';
+                btn.innerHTML = `<div class="font-bold">${prot.title}</div><div class="text-xs font-normal text-slate-400 mt-1">${prot.category}</div>`;
+                btn.onclick = () => selectProtocol(prot.id, btn);
+                nav.appendChild(btn);
+            });
+        }
+
+        function selectProtocol(id, btnElement) {
+            // Update Active State in Menu
+            const buttons = document.querySelectorAll('#ailment-list button');
+            buttons.forEach(b => {
+                b.classList.remove('bg-teal-50', 'border-teal-500', 'text-teal-800');
+                b.classList.add('border-transparent');
+            });
+            btnElement.classList.remove('border-transparent');
+            btnElement.classList.add('bg-teal-50', 'border-teal-500', 'text-teal-800');
+
+            // Find Data
+            const data = protocols.find(p => p.id === id);
+            if (!data) return;
+
+            // Toggle Views
+            document.getElementById('intro-view').classList.add('hidden');
+            const protocolView = document.getElementById('protocol-view');
+            protocolView.classList.remove('hidden');
+            
+            // Minor animation reset hack
+            protocolView.classList.remove('animate-fade-in');
+            void protocolView.offsetWidth; // trigger reflow
+            protocolView.classList.add('animate-fade-in');
+
+            // Populate Content
+            document.getElementById('prot-category').innerText = data.category;
+            document.getElementById('prot-title').innerText = data.title;
+            document.getElementById('prot-desc').innerHTML = data.description;
+            document.getElementById('prot-menu').innerText = data.menu;
+            document.getElementById('prot-duration').innerText = data.duration;
+            document.getElementById('prot-freq').innerText = data.freqBase;
+            document.getElementById('prot-intensity').innerHTML = data.intensity;
+            document.getElementById('prot-usage').innerText = data.usage;
+            document.getElementById('prot-trick').innerText = data.trick;
+            document.getElementById('prot-placement-text').innerText = data.placementText;
+
+            // Render Diagram
+            renderDiagram(data.diagramType);
+
+            // Render Chart
+            updateChart(data.title, data.chartData);
+        }
+
+        // --- CSS Layout based Diagrams ---
+        function renderDiagram(type) {
+            const container = document.getElementById('diagram-container');
+            container.innerHTML = ''; // clear
+
+            let html = '';
+            // Abstract representations using CSS shapes
+            if (type === 'square-surround') {
+                html = `
+                    <div class="flex justify-between w-full px-8">
+                        <div class="pad-positive">CH1 +</div>
+                        <div class="pad-positive">CH2 +</div>
+                    </div>
+                    <div class="flex justify-center w-full my-2">
+                        <div class="pain-zone">Zona Dolor Central</div>
+                    </div>
+                    <div class="flex justify-between w-full px-8">
+                        <div class="pad-negative">CH2 -</div>
+                        <div class="pad-negative">CH1 -</div>
+                    </div>
+                    <p class="text-xs text-center text-slate-400 mt-2 w-full">Configuración Cruzada (Interferencial/TENS)</p>
+                `;
+            } else if (type === 'parallel-vertical') {
+                html = `
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="pad-positive">CH1 +</div>
+                        <div class="h-8 w-1 border-l-2 border-dashed border-slate-300"></div>
+                        <div class="pain-zone">Músculo (Ej: Trapecio)</div>
+                        <div class="h-8 w-1 border-l-2 border-dashed border-slate-300"></div>
+                        <div class="pad-negative">CH1 -</div>
+                    </div>
+                `;
+            } else if (type === 'linear-path') {
+                html = `
+                    <div class="flex items-center justify-between w-full px-4">
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-slate-400 mb-1">Origen Nervio</span>
+                            <div class="pad-positive">CH1 +</div>
+                        </div>
+                        <div class="flex-1 border-b-2 border-amber-300 border-dashed mx-4 relative">
+                            <span class="absolute -top-3 left-1/2 transform -translate-x-1/2 text-[10px] text-amber-600 font-bold bg-stone-50 px-1">Recorrido Dolor</span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-slate-400 mb-1">Irradiación</span>
+                            <div class="pad-negative">CH1 -</div>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'bracket') {
+                html = `
+                    <div class="flex items-center space-x-6 justify-center">
+                        <div class="pad-positive">CH1 +</div>
+                        <div class="pain-zone shadow-inner bg-amber-200">Articulación / Tendón</div>
+                        <div class="pad-negative">CH1 -</div>
+                    </div>
+                `;
+            } else if (type === 'cross-joint') {
+                html = `
+                    <div class="relative w-48 h-48 mx-auto flex items-center justify-center">
+                        <div class="pain-zone absolute z-10 bg-white/90 shadow">Articulación (Rodilla)</div>
+                        <div class="pad-positive absolute top-0 left-0">CH1 +</div>
+                        <div class="pad-negative absolute top-0 right-0">CH2 -</div>
+                        <div class="pad-positive absolute bottom-0 right-0">CH2 +</div>
+                        <div class="pad-negative absolute bottom-0 left-0">CH1 -</div>
+                        <!-- Cross lines -->
+                        <div class="absolute inset-0 flex items-center justify-center -z-0">
+                            <div class="w-full h-0.5 bg-slate-200 transform rotate-45"></div>
+                            <div class="w-full h-0.5 bg-slate-200 transform -rotate-45"></div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                html = `<div class="pain-zone">Referirse al manual impreso</div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // --- Chart.js Implementation ---
+        function updateChart(protocolName, currentData) {
+            const ctx = document.getElementById('protocolChart').getContext('2d');
+            
+            // Baseline data for comparison
+            const labels = ['Frecuencia (Hz)', 'Tiempo Típico (Min)'];
+            const dataConvencional = [90, 30]; // Baseline TENS Rápido
+            const dataEndorfinico = [4, 45];   // Baseline TENS Lento
+
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'TENS Rápido Estándar',
+                            data: dataConvencional,
+                            backgroundColor: 'rgba(203, 213, 225, 0.4)', // slate-300
+                            borderColor: 'rgba(148, 163, 184, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: protocolName + ' (Seleccionado)',
+                            data: currentData,
+                            backgroundColor: 'rgba(13, 148, 136, 0.8)', // teal-600
+                            borderColor: 'rgba(15, 118, 110, 1)',
+                            borderWidth: 1,
+                            barThickness: 40
+                        },
+                        {
+                            label: 'TENS Endorfínico (Lento)',
+                            data: dataEndorfinico,
+                            backgroundColor: 'rgba(254, 215, 170, 0.4)', // orange-200
+                            borderColor: 'rgba(251, 146, 60, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Essential for respecting container height
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: "'Inter', sans-serif", size: 12 },
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleFont: { size: 13 },
+                            bodyFont: { size: 14 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.dataIndex === 0) {
+                                        label += context.parsed.y + ' Hz';
+                                    } else {
+                                        label += context.parsed.y + ' Minutos';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(241, 245, 249, 1)' // stone-100
+                            },
+                            ticks: {
+                                font: { family: "'Inter', sans-serif" }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: { family: "'Inter', sans-serif", weight: 'bold' }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 800,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+    </script>
+
+    <!-- Simple custom CSS animation for smooth transitions -->
+    <style>
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</body>
+</html>
